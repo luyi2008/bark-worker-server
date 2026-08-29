@@ -1,6 +1,6 @@
 import { expect, test } from '@rstest/core';
 import { API } from '../src/core/api';
-import { KVAdapter, type BasicKV } from '../src/core/db/kv-adapter';
+import { type BasicKV, KVAdapter } from '../src/core/db/kv-adapter';
 import { createHono } from '../src/core/hono';
 
 class MemoryKV implements BasicKV {
