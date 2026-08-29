@@ -95,6 +95,35 @@ export class API {
     });
   }
 
+  async check(deviceKey?: string) {
+    const key = deviceKey ?? '';
+    const fail = (reason: string) =>
+      buildSuccess({
+        device_key: key,
+        valid: false,
+        registered: false,
+        reason,
+      });
+
+    if (!key) {
+      return fail('device key is empty');
+    }
+    if (key.length !== 22) {
+      return fail('device key length is invalid');
+    }
+    if (!/^[a-zA-Z0-9]+$/.test(key)) {
+      return fail('device key contains invalid characters');
+    }
+
+    const token = await this.db.deviceTokenByKey(key);
+    return buildSuccess({
+      device_key: key,
+      valid: true,
+      registered: Boolean(token),
+      reason: null,
+    });
+  }
+
   ping() {
     return buildSuccess(undefined, 'pong');
   }

@@ -202,6 +202,15 @@ export const createHono = <T extends Env>(options: Options) => {
     c.json(await api.push(await parseBody(c), c)),
   );
 
+  router.get('/check', async (c) =>
+    c.json(await api.check(c.req.query('device_key') || c.req.query('key'))),
+  );
+
+  router.post('/check', async (c) => {
+    const body = await parseBody(c);
+    return c.json(await api.check(body.device_key || body.key));
+  });
+
   // compat v1 API
   registerV1(router as unknown as Hono, api);
 
