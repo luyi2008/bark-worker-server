@@ -10,18 +10,28 @@ export const base64ToArrayBuffer = (base64: string) => {
   return buffer;
 };
 
-export const newShortUUID = async () => {
-  const uuid = crypto.randomUUID();
-  const hashBuffer = await crypto.subtle.digest(
-    'SHA-256',
-    new TextEncoder().encode(uuid),
-  );
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
+export const normalizeDeviceToken = (token: string) =>
+  (token || '').replace(/[^a-z0-9]/g, '');
 
-  return btoa(String.fromCharCode(...hashArray))
-    .replace(/[^a-zA-Z0-9]|[lIO01]/g, '')
-    .slice(0, 22);
+export const shortHash = async (input: string, length = 22) => {
+  let seed = input;
+  let out = '';
+  while (out.length < length) {
+    const hashBuffer = await crypto.subtle.digest(
+      'SHA-256',
+      new TextEncoder().encode(seed),
+    );
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    out += btoa(String.fromCharCode(...hashArray)).replace(
+      /[^a-zA-Z0-9]|[lIO01]/g,
+      '',
+    );
+    seed = `${seed}:${out}`;
+  }
+  return out.slice(0, length);
 };
+
+export const newShortUUID = async () => shortHash(crypto.randomUUID());
 
 const constantTimeCompare = (a: string, b: string) => {
   if (typeof a !== 'string' || typeof b !== 'string') {
