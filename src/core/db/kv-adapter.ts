@@ -9,7 +9,10 @@ export interface BasicKV {
 export class KVAdapter implements DBAdapter {
   kv: BasicKV;
   /** Same-isolate write-through so register then check does not miss KV lag. */
-  private recent = new Map<string, { value: string | null; expireAt: number }>();
+  private recent = new Map<
+    string,
+    { value: string | null; expireAt: number }
+  >();
   private static readonly RECENT_TTL_MS = 60_000;
 
   constructor(kv: BasicKV) {
