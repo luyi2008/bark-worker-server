@@ -16,6 +16,7 @@ export type NullLike = null | undefined;
 export interface DBAdapter {
   countAll(): Promise<number>;
   deviceTokenByKey(key: string): Promise<string | NullLike>;
+  deviceKeyByToken(token: string): Promise<string | NullLike>;
   saveDeviceTokenByKey(key: string, token: string): Promise<void>;
   deleteDeviceByKey(key: string): Promise<void>;
   saveAuthorizationToken(token: string, ttl: number): Promise<void>;
