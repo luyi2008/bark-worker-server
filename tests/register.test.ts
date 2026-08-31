@@ -35,7 +35,6 @@ const createApp = (db?: KVAdapter, allowNewDevice = true) =>
     allowNewDevice,
     allowQueryNums: true,
     maxBatchPushCount: Number.NaN,
-    checkReadRetries: 0,
   });
 
 test('device key is 22-char hash of token', async () => {

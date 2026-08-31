@@ -136,21 +136,11 @@ export class API {
       return fail('device key contains invalid characters');
     }
 
-    const hasToken = (value: unknown) =>
-      Boolean(value && String(value).length > 0);
-
-    let token = await this.db.deviceTokenByKey(key);
-    const retries = this.options.checkReadRetries ?? 0;
-    const retryMs = this.options.checkReadRetryMs ?? 300;
-    for (let i = 0; !hasToken(token) && i < retries; i++) {
-      await new Promise((resolve) => setTimeout(resolve, retryMs));
-      token = await this.db.deviceTokenByKey(key);
-    }
-
+    const token = await this.db.deviceTokenByKey(key);
     return buildSuccess({
       device_key: key,
       valid: true,
-      registered: hasToken(token),
+      registered: Boolean(token),
       reason: null,
     });
   }

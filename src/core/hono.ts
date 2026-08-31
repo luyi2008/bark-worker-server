@@ -155,11 +155,7 @@ const registerV1 = async (app: Hono, api: API) => {
 };
 
 export const createHono = <T extends Env>(options: Options) => {
-  const api = new API({
-    ...options,
-    checkReadRetries: options.checkReadRetries ?? 4,
-    checkReadRetryMs: options.checkReadRetryMs ?? 250,
-  });
+  const api = new API(options);
 
   const app = new Hono<T>();
 
