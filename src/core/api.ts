@@ -67,24 +67,42 @@ export class API {
       throw new APIError(400, 'device token is invalid');
     }
 
-    if (!(key && (await this.db.deviceTokenByKey(key)))) {
-      if (this.options.allowNewDevice) {
-        key = await newShortUUID();
-      } else {
-        throw new APIError(
-          500,
-          'device registration failed: register disabled',
-        );
-      }
-    }
-
     if (deviceToken === 'deleted') {
+      if (!(key && (await this.db.deviceTokenByKey(key)))) {
+        if (this.options.allowNewDevice) {
+          key = await newShortUUID();
+        } else {
+          throw new APIError(
+            500,
+            'device registration failed: register disabled',
+          );
+        }
+      }
       await this.db.deleteDeviceByKey(key);
       return buildSuccess({
         key: key,
         device_key: key,
         device_token: 'deleted',
       });
+    }
+
+    const existingKey = await this.db.deviceKeyByToken(deviceToken);
+    if (existingKey) {
+      return buildSuccess({
+        key: existingKey,
+        device_key: existingKey,
+        device_token: deviceToken,
+      });
+    }
+
+    if (key && (await this.db.deviceTokenByKey(key))) {
+      throw new APIError(500, 'device key is invalid');
+    }
+
+    if (this.options.allowNewDevice) {
+      key = await newShortUUID();
+    } else {
+      throw new APIError(500, 'device registration failed: register disabled');
     }
 
     await this.db.saveDeviceTokenByKey(key, deviceToken);
