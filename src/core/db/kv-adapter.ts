@@ -31,14 +31,6 @@ export class KVAdapter implements DBAdapter {
     return devices;
   }
 
-  async deviceKeyByToken(token: string) {
-    const deviceToken = (token || '').replace(/[^a-z0-9]/g, '');
-    if (!deviceToken) {
-      return undefined;
-    }
-    return this.kv.get(`token_${deviceToken}`, { type: 'text' });
-  }
-
   async saveDeviceTokenByKey(key: string, token: string) {
     if (!token) {
       return this.deleteDeviceByKey(key);
@@ -48,20 +40,13 @@ export class KVAdapter implements DBAdapter {
     const existing = await this.kv.get(k, { type: 'text' });
     if (!existing) {
       await this.updateCount(1);
-    } else if (existing !== deviceToken) {
-      await this.kv.delete(`token_${existing}`);
     }
     await this.kv.put(k, deviceToken);
-    await this.kv.put(`token_${deviceToken}`, key);
   }
 
   async deleteDeviceByKey(key: string) {
     const deviceKey =
       (key || '').replace(/[^a-zA-Z0-9]/g, '') || '_PLACE_HOLDER_';
-    const token = await this.kv.get(`device_${deviceKey}`, { type: 'text' });
-    if (token) {
-      await this.kv.delete(`token_${token}`);
-    }
     await this.updateCount(-1);
     return this.kv.delete(`device_${deviceKey}`);
   }

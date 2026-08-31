@@ -1,7 +1,12 @@
 import type { Context } from 'hono';
 import { push, regenerateAuthToken } from './apns';
 import type { DBAdapter, Options } from './type';
-import { getTimestamp, newShortUUID } from './utils';
+import {
+  getTimestamp,
+  newShortUUID,
+  normalizeDeviceToken,
+  shortHash,
+} from './utils';
 
 export class APIError extends Error {
   code: number;
@@ -86,11 +91,11 @@ export class API {
       });
     }
 
-    const existingKey = await this.db.deviceKeyByToken(deviceToken);
-    if (existingKey) {
+    const derivedKey = await shortHash(normalizeDeviceToken(deviceToken));
+    if (await this.db.deviceTokenByKey(derivedKey)) {
       return buildSuccess({
-        key: existingKey,
-        device_key: existingKey,
+        key: derivedKey,
+        device_key: derivedKey,
         device_token: deviceToken,
       });
     }
@@ -99,16 +104,14 @@ export class API {
       throw new APIError(500, 'device key is invalid');
     }
 
-    if (this.options.allowNewDevice) {
-      key = await newShortUUID();
-    } else {
+    if (!this.options.allowNewDevice) {
       throw new APIError(500, 'device registration failed: register disabled');
     }
 
-    await this.db.saveDeviceTokenByKey(key, deviceToken);
+    await this.db.saveDeviceTokenByKey(derivedKey, deviceToken);
     return buildSuccess({
-      key: key,
-      device_key: key,
+      key: derivedKey,
+      device_key: derivedKey,
       device_token: deviceToken,
     });
   }

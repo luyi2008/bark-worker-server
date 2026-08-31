@@ -2,6 +2,7 @@ import { expect, test } from '@rstest/core';
 import { API, APIError } from '../src/core/api';
 import { type BasicKV, KVAdapter } from '../src/core/db/kv-adapter';
 import { createHono } from '../src/core/hono';
+import { normalizeDeviceToken, shortHash } from '../src/core/utils';
 
 class MemoryKV implements BasicKV {
   kv: Record<string, string> = {};
@@ -20,8 +21,6 @@ class MemoryKV implements BasicKV {
   }
 }
 
-const OTHER_KEY = 'ynJ5Ft4atkMkWeo2PAvFhF';
-
 const createApi = (db?: KVAdapter, allowNewDevice = true) =>
   new API({
     db: db || new KVAdapter(new MemoryKV()),
@@ -37,6 +36,15 @@ const createApp = (db?: KVAdapter, allowNewDevice = true) =>
     allowQueryNums: true,
     maxBatchPushCount: Number.NaN,
   });
+
+test('device key is 22-char hash of token', async () => {
+  const api = createApi();
+  const token = 'tokenaaa';
+  const result = await api.register(token);
+  const expected = await shortHash(normalizeDeviceToken(token));
+  expect(expected).toHaveLength(22);
+  expect(result.data.device_key).toBe(expected);
+});
 
 test('same token without key reuses device key', async () => {
   const api = createApi();
@@ -75,7 +83,11 @@ test('new token with existing key returns 500 and does not write', async () => {
   }
 
   expect(await api.db.deviceTokenByKey(first.data.device_key)).toBe('tokenaaa');
-  expect(await api.db.deviceKeyByToken('tokenccc')).toBeUndefined();
+  expect(
+    await api.db.deviceTokenByKey(
+      await shortHash(normalizeDeviceToken('tokenccc')),
+    ),
+  ).toBeUndefined();
 });
 
 test('new token without key creates device when allowed', async () => {
@@ -102,22 +114,23 @@ test('new token without key is rejected when register disabled', async () => {
 
 test('existing token can be reused when register disabled', async () => {
   const db = new KVAdapter(new MemoryKV());
-  await db.saveDeviceTokenByKey(OTHER_KEY, 'tokenaaa');
+  const token = 'tokenaaa';
+  const derivedKey = await shortHash(normalizeDeviceToken(token));
+  await db.saveDeviceTokenByKey(derivedKey, token);
   const api = createApi(db, false);
-  const result = await api.register('tokenaaa');
-  expect(result.data.device_key).toBe(OTHER_KEY);
+  const result = await api.register(token);
+  expect(result.data.device_key).toBe(derivedKey);
 });
 
-test('token can register as a new device after deleted', async () => {
+test('token can register again after deleted', async () => {
   const api = createApi();
   const first = await api.register('tokenaaa');
   await api.register('deleted', first.data.device_key);
 
   expect(await api.db.deviceTokenByKey(first.data.device_key)).toBeUndefined();
-  expect(await api.db.deviceKeyByToken('tokenaaa')).toBeUndefined();
 
   const second = await api.register('tokenaaa');
-  expect(second.data.device_key).not.toBe(first.data.device_key);
+  expect(second.data.device_key).toBe(first.data.device_key);
   expect(second.data.device_token).toBe('tokenaaa');
 });
 
