@@ -46,6 +46,9 @@ export interface Options {
   basicAuth?: string;
   urlPrefix?: string;
   apnsUrl?: string;
+  /** Extra KV reads after a miss. Helps ESA/CF read-after-write delay. */
+  checkReadRetries?: number;
+  checkReadRetryMs?: number;
   requestAPNs?: (
     deviceToken: string,
     headers: Record<string, string>,

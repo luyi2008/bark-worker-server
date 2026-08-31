@@ -155,11 +155,21 @@ const registerV1 = async (app: Hono, api: API) => {
 };
 
 export const createHono = <T extends Env>(options: Options) => {
-  const api = new API(options);
+  const api = new API({
+    ...options,
+    checkReadRetries: options.checkReadRetries ?? 4,
+    checkReadRetryMs: options.checkReadRetryMs ?? 250,
+  });
 
   const app = new Hono<T>();
 
   const router = app.basePath(options.urlPrefix || '/');
+
+  // ESA/CDN may cache GET 200s; check/register must not serve a stale miss.
+  router.use('*', async (c, next) => {
+    await next();
+    c.header('Cache-Control', 'no-store');
+  });
 
   router.get('/register', async (c) => {
     return c.json(
